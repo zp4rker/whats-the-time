@@ -1,13 +1,11 @@
 package com.zp4rker.whatsthetime
 
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.Dimension
-import java.awt.Font
+import java.awt.*
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
+import java.awt.image.BufferedImage
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Timer
@@ -58,6 +56,9 @@ class MrWolf {
 
         frame.add(panel, BorderLayout.CENTER)
         frame.isVisible = true
+
+        val blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB), Point(0, 0), "blank cursor")
+        frame.cursor = blankCursor
 
         frame.addComponentListener(object : ComponentListener {
             override fun componentResized(e: ComponentEvent?) {
