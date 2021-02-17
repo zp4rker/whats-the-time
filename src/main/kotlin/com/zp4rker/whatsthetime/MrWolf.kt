@@ -101,6 +101,10 @@ class MrWolf {
         val time = OffsetDateTime.now()
         timeLabel.text = "${time.hour.toString().padStart(2, '0')}  ${time.minute.toString().padStart(2, '0')}  ${time.second.toString().padStart(2, '0')}"
         Timer().schedule(time.until(time.plusSeconds(1), ChronoUnit.MILLIS)) {
+            OffsetDateTime.now().let {
+                if (it.second == 0) updateBattery()
+                if (it.hour == 0 && it.minute == 0) updateDate()
+            }
             updateTime()
         }
     }
@@ -137,10 +141,6 @@ class MrWolf {
         val fullText = "Battery is at ${percentage.padStart(2, '0')}"
 
         if (battLabel.text != fullText) battLabel.text = fullText
-
-        Timer().schedule(TimeUnit.SECONDS.toMillis(30)) {
-            updateBattery()
-        }
     }
 
     companion object {
