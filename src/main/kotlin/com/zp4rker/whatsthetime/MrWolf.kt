@@ -94,7 +94,7 @@ class MrWolf {
             override fun componentHidden(e: ComponentEvent?) {}
         })
 
-        frame.addMouseListener(object : MouseListener {
+        dateLabel.addMouseListener(object : MouseListener {
             override fun mouseClicked(e: MouseEvent?) {
                 adjustment = if (adjustment == 0) -1 else 0
                 updateDate()
