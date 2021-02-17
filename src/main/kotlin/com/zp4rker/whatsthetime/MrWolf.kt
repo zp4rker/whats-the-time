@@ -33,6 +33,7 @@ class MrWolf {
     private val battLabel = JLabel("Battery is at XX%", SwingConstants.CENTER)
 
     private var ipLocation: IPLocation? = null
+    private var adjustment: Int = -1
 
     init {
         val regularFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Regular.ttf"))
@@ -95,10 +96,8 @@ class MrWolf {
 
         frame.addMouseListener(object : MouseListener {
             override fun mouseClicked(e: MouseEvent?) {
-                updateTime()
-                updateSalah()
+                adjustment = if (adjustment == 0) -1 else 0
                 updateDate()
-                updateBattery()
             }
 
             override fun mousePressed(e: MouseEvent?) {}
@@ -210,7 +209,7 @@ class MrWolf {
             "city" to ipLocation?.city,
             "country" to ipLocation?.country,
             "method" to "4",
-            "adjustment" to "-1"
+            "adjustment" to "$adjustment"
         ))).getJSONObject("data")
     }
 
