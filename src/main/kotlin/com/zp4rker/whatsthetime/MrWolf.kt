@@ -11,6 +11,7 @@ import java.awt.event.ComponentListener
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.time.OffsetDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Timer
 import javax.swing.*
@@ -142,16 +143,24 @@ class MrWolf {
             SalahTime.Schedule.sortBy { it.time }
         }
 
-        val lastSalah = SalahTime.Schedule.last { it.time < now }
-        val prevDiff = lastSalah.time.until(now, ChronoUnit.MINUTES)
-
-        val nextSalah = SalahTime.Schedule.find { it.time > now } ?: return
-        val nextDiff = now.until(nextSalah.time, ChronoUnit.MINUTES)
-
-        val text = if (prevDiff > SalahTime.Duration.valueOf(lastSalah.name).value) {
+        val text = if (SalahTime.Schedule.none { it.time < now }) {
+            val nextSalah = SalahTime.Schedule.find { it.time > now } ?: return
+            val nextDiff = now.until(nextSalah.time, ChronoUnit.MINUTES)
             "It's ${nextSalah.name} time in $nextDiff minute${if (nextDiff != 1L) "s" else ""}."
+        } else if (SalahTime.Schedule.none { it.time > now }) {
+            "It's Isha time."
         } else {
-            "It's ${lastSalah.name} time."
+            val lastSalah = SalahTime.Schedule.last { it.time < now }
+            val prevDiff = lastSalah.time.until(now, ChronoUnit.MINUTES)
+
+            val nextSalah = SalahTime.Schedule.find { it.time > now } ?: return
+            val nextDiff = now.until(nextSalah.time, ChronoUnit.MINUTES)
+
+            if (prevDiff > SalahTime.Duration.valueOf(lastSalah.name).value) {
+                "It's ${nextSalah.name} time in $nextDiff minute${if (nextDiff != 1L) "s" else ""}."
+            } else {
+                "It's ${lastSalah.name} time."
+            }
         }
 
         if (salahLabel.text != text) salahLabel.text = text
@@ -190,8 +199,9 @@ class MrWolf {
         if (battLabel.text != fullText) battLabel.text = fullText
     }
 
-    private fun getHijriData(): JSONObject {
-        val url = "http://api.aladhan.com/v1/timingsByCity?city=Canberra&country=Australia&method=4&adjustment=-1"
+    private fun getHijriData(date: OffsetDateTime = OffsetDateTime.now()): JSONObject {
+        val dateFormat = DateTimeFormatter.ofPattern("dd-MM-YYYY")
+        val url = "http://api.aladhan.com/v1/timingsByCity/${date.format(dateFormat)}?city=Canberra&country=Australia&method=4&adjustment=-1"
         return JSONObject(request("GET", url)).getJSONObject("data")
     }
 
