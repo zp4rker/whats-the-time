@@ -10,4 +10,12 @@ data class SalahTime(val name: String, val time: OffsetDateTime) {
         val Schedule = mutableListOf<SalahTime>()
         val Ignored = arrayOf("Sunrise", "Sunset", "Imsak", "Midnight")
     }
+
+    enum class Duration(val value: Long) {
+        Fajr(30),
+        Dhuhr(120),
+        Asr(120),
+        Maghrib(30),
+        Isha(180)
+    }
 }

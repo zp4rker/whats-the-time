@@ -93,6 +93,8 @@ class MrWolf {
         frame.addMouseListener(object : MouseListener {
             override fun mouseClicked(e: MouseEvent?) {
                 updateTime()
+                updateSalah()
+                updateDate()
                 updateBattery()
             }
 
@@ -146,7 +148,7 @@ class MrWolf {
         val nextSalah = SalahTime.Schedule.find { it.time > now } ?: return
         val nextDiff = now.until(nextSalah.time, ChronoUnit.MINUTES)
 
-        val text = if (prevDiff > 60) {
+        val text = if (prevDiff > SalahTime.Duration.valueOf(lastSalah.name).value) {
             "It's ${nextSalah.name} time in $nextDiff minute${if (nextDiff != 1L) "s" else ""}."
         } else {
             "It's ${lastSalah.name} time."
