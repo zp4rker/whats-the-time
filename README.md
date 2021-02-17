@@ -12,4 +12,4 @@ A simple Java app written in Kotlin to display the time.
 
 </div>
 
-![Preview](https://i.imgur.com/av9deNH.png)
+![Preview](https://cdn.zp4rker.com/12qcw.png)
