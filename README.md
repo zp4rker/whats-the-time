@@ -10,6 +10,8 @@
 
 A simple Java app written in Kotlin to display the time.
 
-</div>
-
 ![Preview](https://cdn.zp4rker.com/12qcw.png)
+
+[<img src="https://img.shields.io/badge/%E2%AC%87-Download-brightgreen" width="200"/>](https://github.com/zp4rker/whats-the-time/releases/latest)
+
+</div>
