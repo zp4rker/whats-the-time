@@ -192,10 +192,13 @@ class MrWolf {
     }
 
     private fun updateBattery() {
-        val battRaw = Runtime.getRuntime().exec("pmset -g batt").inputStream.reader().readText()
-        val percentage = Regex("(\\d+)%").find(battRaw)?.groupValues?.get(0) ?: "unknown"
+        val percentage = runCatching {
+            Runtime.getRuntime().exec("pmset -g batt").inputStream.reader().readText().let {
+                Regex("(\\d+)%").find(it)?.groupValues?.get(0) ?: "unknown"
+            }
+        }.getOrNull() ?: "unknown"
 
-        val fullText = "Battery is at ${percentage.padStart(2, '0')}"
+        val fullText = if (percentage != "unknown") "Battery is at ${percentage.padStart(2, '0')}" else ""
 
         if (battLabel.text != fullText) battLabel.text = fullText
     }
