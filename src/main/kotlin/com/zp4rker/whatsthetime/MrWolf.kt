@@ -11,6 +11,7 @@ import java.awt.event.ComponentListener
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Timer
@@ -30,6 +31,8 @@ class MrWolf {
     private val salahLabel = JLabel("Fajr is in 5 hours", SwingConstants.CENTER)
     private val dateLabel = JLabel("Date", SwingConstants.CENTER)
     private val battLabel = JLabel("Battery is at XX%", SwingConstants.CENTER)
+
+    private var ipLocation: IPLocation? = null
 
     init {
         val regularFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Regular.ttf"))
@@ -57,7 +60,6 @@ class MrWolf {
                 box.add(timeLabel)
                 box.add(Box.createHorizontalGlue())
             })
-//            add(Box.createVerticalGlue())
             arrayOf(salahLabel, dateLabel, battLabel).forEach {
                 add(Box.createHorizontalBox().also { box ->
                     box.add(Box.createHorizontalGlue())
@@ -112,10 +114,10 @@ class MrWolf {
     }
 
     private fun updateTime() {
-        val time = OffsetDateTime.now()
+        val time = getTime()
         timeLabel.text = "${time.hour.toString().padStart(2, '0')}  ${time.minute.toString().padStart(2, '0')}  ${time.second.toString().padStart(2, '0')}"
         Timer().schedule(time.until(time.plusSeconds(1), ChronoUnit.MILLIS)) {
-            OffsetDateTime.now().let {
+            getTime().let {
                 if (it.second % 15 == 0) {
                     updateSalah()
                     updateBattery()
@@ -128,7 +130,7 @@ class MrWolf {
     }
 
     private fun updateSalah() {
-        val now = OffsetDateTime.now()
+        val now = getTime()
 
         if (SalahTime.Schedule.isEmpty() || now.dayOfMonth > SalahTime.Schedule.first().time.dayOfMonth) {
             SalahTime.Schedule.clear()
@@ -136,7 +138,7 @@ class MrWolf {
             val timings = getHijriData().getJSONObject("timings")
             for (key in timings.keySet().filter { !SalahTime.Ignored.contains(it) }) {
                 val timeComponents = timings.getString(key).split(":")
-                val time = OffsetDateTime.now().withHour(timeComponents[0].toInt()).withMinute(timeComponents[1].toInt()).withSecond(0)
+                val time = getTime().withHour(timeComponents[0].toInt()).withMinute(timeComponents[1].toInt()).withSecond(0)
                 SalahTime.Schedule.add(SalahTime(key, time))
             }
 
@@ -199,10 +201,27 @@ class MrWolf {
         if (battLabel.text != fullText) battLabel.text = fullText
     }
 
-    private fun getHijriData(date: OffsetDateTime = OffsetDateTime.now()): JSONObject {
+    private fun getHijriData(date: OffsetDateTime = getTime()): JSONObject {
+        if (ipLocation == null) updateLocation()
+
         val dateFormat = DateTimeFormatter.ofPattern("dd-MM-YYYY")
-        val url = "http://api.aladhan.com/v1/timingsByCity/${date.format(dateFormat)}?city=Canberra&country=Australia&method=4&adjustment=-1"
-        return JSONObject(request("GET", url)).getJSONObject("data")
+        val url = "http://api.aladhan.com/v1/timingsByCity/${date.format(dateFormat)}"
+        return JSONObject(request("GET", url, mapOf(
+            "city" to ipLocation?.city,
+            "country" to ipLocation?.country,
+            "method" to "4",
+            "adjustment" to "-1"
+        ))).getJSONObject("data")
+    }
+
+    private fun updateLocation() {
+        ipLocation = IPLocation.search()
+    }
+
+    private fun getTime(): OffsetDateTime {
+        if (ipLocation == null) updateLocation()
+
+        return OffsetDateTime.now(ZoneId.of(ipLocation?.timezone))
     }
 
     companion object {
