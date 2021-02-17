@@ -1,11 +1,15 @@
 package com.zp4rker.whatsthetime
 
-import java.awt.*
+import com.zp4rker.whatsthetime.http.request
+import org.json.JSONObject
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Dimension
+import java.awt.Font
 import java.awt.event.ComponentEvent
 import java.awt.event.ComponentListener
 import java.awt.event.MouseEvent
 import java.awt.event.MouseListener
-import java.awt.image.BufferedImage
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Timer
@@ -21,31 +25,36 @@ class MrWolf {
     private val frame = JFrame("What's the time?")
     private val panel = JPanel(BorderLayout())
     private val timeLabel = JLabel("00 00 00", SwingConstants.CENTER)
+    private val dateLabel = JLabel("Date", SwingConstants.CENTER)
     private val battLabel = JLabel("Battery is at XX%", SwingConstants.CENTER)
 
     init {
+        val regularFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Regular.ttf"))
+        val thinFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Thin.ttf"))
+
         frame.size = Dimension(700, 500)
         frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
         frame.setLocationRelativeTo(null)
 
         timeLabel.foreground = Color.WHITE
-        val thinFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Thin.ttf"))
         timeLabel.font = thinFont.deriveFont(frame.width / 6F)
 
-        battLabel.foreground = Color.WHITE
-        val regularFont = Font.createFont(Font.PLAIN, MrWolf::class.java.getResourceAsStream("/Roboto-Regular.ttf"))
-        battLabel.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+        arrayOf(dateLabel, battLabel).forEach {
+            it.foreground = Color.WHITE
+            it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+        }
 
         val box = Box.createHorizontalBox()
         box.add(Box.createHorizontalGlue())
         box.add(Box.createVerticalBox().apply {
             add(Box.createVerticalGlue())
-            add(timeLabel)
-            add(Box.createHorizontalBox().also {
-                it.add(Box.createHorizontalGlue())
-                it.add(battLabel)
-                it.add(Box.createHorizontalGlue())
-            })
+            arrayOf(timeLabel, dateLabel, battLabel).forEach {
+                add(Box.createHorizontalBox().also { box ->
+                    box.add(Box.createHorizontalGlue())
+                    box.add(it)
+                    box.add(Box.createHorizontalGlue())
+                })
+            }
             add(Box.createVerticalGlue())
         })
         box.add(Box.createHorizontalGlue())
@@ -57,14 +66,13 @@ class MrWolf {
         frame.add(panel, BorderLayout.CENTER)
         frame.isVisible = true
 
-        val blankCursor = Toolkit.getDefaultToolkit().createCustomCursor(BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB), Point(0, 0), "blank cursor")
-        frame.cursor = blankCursor
-
         frame.addComponentListener(object : ComponentListener {
             override fun componentResized(e: ComponentEvent?) {
                 timeLabel.font = thinFont.deriveFont(frame.width / 6F)
 
-                battLabel.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+                arrayOf(dateLabel, battLabel).forEach {
+                    it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+                }
             }
 
             override fun componentMoved(e: ComponentEvent?) {}
@@ -85,6 +93,7 @@ class MrWolf {
         })
 
         updateTime()
+        updateDate()
         updateBattery()
     }
 
@@ -94,6 +103,31 @@ class MrWolf {
         Timer().schedule(time.until(time.plusSeconds(1), ChronoUnit.MILLIS)) {
             updateTime()
         }
+    }
+
+    private fun updateDate() {
+        val url = "http://api.aladhan.com/v1/timingsByCity?city=Canberra&country=Australia&method=4&adjustment=-1"
+        val data = JSONObject(request("GET", url)).getJSONObject("data")
+
+        val hijri = data.getJSONObject("date").getJSONObject("hijri")
+        val month = hijri.getJSONObject("month").getString("en")
+        val day = hijri.getString("day").let {
+            val n = it.toInt()
+            "$n" + when {
+                n.toString().takeLast(1) == "1" -> "st"
+                n.toString().takeLast(1) == "2" -> "nd"
+                n.toString().takeLast(1) == "3" -> "rd"
+                else -> "th"
+            }
+        }
+        val year = hijri.getString("year")
+
+        val gregorian = data.getJSONObject("date").getJSONObject("gregorian")
+        val weekdayEn = gregorian.getJSONObject("weekday").getString("en")
+
+        val date = "$weekdayEn the $day of $month, $year"
+
+        if (dateLabel.text != date) dateLabel.text = date
     }
 
     private fun updateBattery() {
