@@ -113,7 +113,7 @@ class MrWolf {
         timeLabel.text = "${time.hour.toString().padStart(2, '0')}  ${time.minute.toString().padStart(2, '0')}  ${time.second.toString().padStart(2, '0')}"
         Timer().schedule(time.until(time.plusSeconds(1), ChronoUnit.MILLIS)) {
             OffsetDateTime.now().let {
-                if (it.second % 30 == 0) {
+                if (it.second % 15 == 0) {
                     updateSalah()
                     updateBattery()
                 } else if (it.hour == 0 && it.minute == 0) {
