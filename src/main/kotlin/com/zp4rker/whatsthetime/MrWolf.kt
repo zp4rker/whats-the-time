@@ -61,10 +61,24 @@ class MrWolf {
                 box.add(timeLabel)
                 box.add(Box.createHorizontalGlue())
             })
-            arrayOf(salahLabel, dateLabel, battLabel).forEach {
+            if (showSalahTime) {
                 add(Box.createHorizontalBox().also { box ->
                     box.add(Box.createHorizontalGlue())
-                    box.add(it)
+                    box.add(salahLabel)
+                    box.add(Box.createHorizontalGlue())
+                })
+            }
+            if (showHijriDate) {
+                add(Box.createHorizontalBox().also { box ->
+                    box.add(Box.createHorizontalGlue())
+                    box.add(dateLabel)
+                    box.add(Box.createHorizontalGlue())
+                })
+            }
+            if (showBattery) {
+                add(Box.createHorizontalBox().also { box ->
+                    box.add(Box.createHorizontalGlue())
+                    box.add(battLabel)
                     box.add(Box.createHorizontalGlue())
                 })
             }
@@ -84,8 +98,10 @@ class MrWolf {
             override fun componentResized(e: ComponentEvent?) {
                 timeLabel.font = thinFont.deriveFont(frame.width / 6F)
 
-                arrayOf(salahLabel, dateLabel, battLabel).forEach {
-                    it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+                regularFont.deriveFont(timeLabel.font.size2D / 7).let {
+                    if (showSalahTime) salahLabel.font = it
+                    if (showHijriDate) dateLabel.font = it
+                    if (showBattery) battLabel.font = it
                 }
             }
 
@@ -94,7 +110,7 @@ class MrWolf {
             override fun componentHidden(e: ComponentEvent?) {}
         })
 
-        dateLabel.addMouseListener(object : MouseListener {
+        if (showHijriDate) dateLabel.addMouseListener(object : MouseListener {
             override fun mouseClicked(e: MouseEvent?) {
                 adjustment = if (adjustment == 0) -1 else 0
                 updateDate()
@@ -107,9 +123,9 @@ class MrWolf {
         })
 
         updateTime()
-        updateSalah()
-        updateDate()
-        updateBattery()
+        if (showSalahTime) updateSalah()
+        if (showHijriDate) updateDate()
+        if (showBattery) updateBattery()
     }
 
     private fun updateTime() {
@@ -227,7 +243,14 @@ class MrWolf {
     }
 
     companion object {
+        private var showSalahTime = false
+        private var showHijriDate = false
+        private var showBattery = false
+
         @JvmStatic fun main(args: Array<String>) {
+            if (args.any { it.toLowerCase() == "--prayertimes" }) showSalahTime = true
+            if (args.any { it.toLowerCase() == "--hijridate" }) showHijriDate = true
+            if (args.any { it.toLowerCase() == "--battery" }) showBattery = true
             MrWolf()
         }
     }
