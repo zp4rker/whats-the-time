@@ -13,7 +13,9 @@ import java.awt.event.MouseListener
 import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.*
 import java.util.Timer
 import javax.swing.*
 import kotlin.concurrent.schedule
@@ -28,8 +30,9 @@ class MrWolf {
 
     private val timeLabel = JLabel("00 00 00", SwingConstants.CENTER)
 
+    private val gregorianLabel = JLabel("Gregorian Date", SwingConstants.CENTER)
     private val salahLabel = JLabel("Fajr is in 5 hours", SwingConstants.CENTER)
-    private val dateLabel = JLabel("Date", SwingConstants.CENTER)
+    private val hijriLabel = JLabel("Hijri Date", SwingConstants.CENTER)
     private val battLabel = JLabel("Battery is at XX%", SwingConstants.CENTER)
 
     private var ipLocation: IPLocation? = null
@@ -46,9 +49,29 @@ class MrWolf {
         timeLabel.foreground = Color.WHITE
         timeLabel.font = thinFont.deriveFont(frame.width / 6F)
 
-        arrayOf(salahLabel, dateLabel, battLabel).forEach {
-            it.foreground = Color.WHITE
-            it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+        if (showGregorianDate) {
+            gregorianLabel.let {
+                it.foreground = Color.WHITE
+                it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+            }
+        }
+        if (showSalahTime) {
+            salahLabel.let {
+                it.foreground = Color.WHITE
+                it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+            }
+        }
+        if (showHijriDate) {
+            hijriLabel.let {
+                it.foreground = Color.WHITE
+                it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+            }
+        }
+        if (showBattery) {
+            battLabel.let {
+                it.foreground = Color.WHITE
+                it.font = regularFont.deriveFont(timeLabel.font.size2D / 7)
+            }
         }
 
         val box = Box.createHorizontalBox()
@@ -61,6 +84,13 @@ class MrWolf {
                 box.add(timeLabel)
                 box.add(Box.createHorizontalGlue())
             })
+            if (showGregorianDate) {
+                add(Box.createHorizontalBox().also { box ->
+                    box.add(Box.createHorizontalGlue())
+                    box.add(gregorianLabel)
+                    box.add(Box.createHorizontalGlue())
+                })
+            }
             if (showSalahTime) {
                 add(Box.createHorizontalBox().also { box ->
                     box.add(Box.createHorizontalGlue())
@@ -71,7 +101,7 @@ class MrWolf {
             if (showHijriDate) {
                 add(Box.createHorizontalBox().also { box ->
                     box.add(Box.createHorizontalGlue())
-                    box.add(dateLabel)
+                    box.add(hijriLabel)
                     box.add(Box.createHorizontalGlue())
                 })
             }
@@ -99,8 +129,9 @@ class MrWolf {
                 timeLabel.font = thinFont.deriveFont(frame.width / 6F)
 
                 regularFont.deriveFont(timeLabel.font.size2D / 7).let {
+                    if (showGregorianDate) gregorianLabel.font = it
                     if (showSalahTime) salahLabel.font = it
-                    if (showHijriDate) dateLabel.font = it
+                    if (showHijriDate) hijriLabel.font = it
                     if (showBattery) battLabel.font = it
                 }
             }
@@ -110,10 +141,10 @@ class MrWolf {
             override fun componentHidden(e: ComponentEvent?) {}
         })
 
-        if (showHijriDate) dateLabel.addMouseListener(object : MouseListener {
+        if (showHijriDate) hijriLabel.addMouseListener(object : MouseListener {
             override fun mouseClicked(e: MouseEvent?) {
                 adjustment = if (adjustment == 0) -1 else 0
-                updateDate()
+                updateHijri()
             }
 
             override fun mousePressed(e: MouseEvent?) {}
@@ -123,8 +154,9 @@ class MrWolf {
         })
 
         updateTime()
+        if (showGregorianDate) updateGregorian()
         if (showSalahTime) updateSalah()
-        if (showHijriDate) updateDate()
+        if (showHijriDate) updateHijri()
         if (showBattery) updateBattery()
     }
 
@@ -134,14 +166,24 @@ class MrWolf {
         Timer().schedule(time.until(time.plusSeconds(1), ChronoUnit.MILLIS)) {
             getTime().let {
                 if (it.second % 15 == 0) {
-                    updateSalah()
-                    updateBattery()
+                    if (showSalahTime) updateSalah()
+                    if (showBattery) updateBattery()
                 } else if (it.hour == 0 && it.minute == 0) {
-                    updateDate()
+                    if (showHijriDate) updateHijri()
                 }
             }
             updateTime()
         }
+    }
+
+    private fun updateGregorian() {
+        val now = getTime()
+
+        val dayName = now.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+        val day = now.dayOfMonth
+        val month = now.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+
+        gregorianLabel.text = "$dayName, $day${"$day".last().let { if (it == '1') "st" else if (it == '2') "nd" else if (it == '3') "rd" else "th" }} $month"
     }
 
     private fun updateSalah() {
@@ -183,7 +225,7 @@ class MrWolf {
         if (salahLabel.text != text) salahLabel.text = text
     }
 
-    private fun updateDate() {
+    private fun updateHijri() {
         val data = getHijriData()
 
         val hijri = data.getJSONObject("date").getJSONObject("hijri")
@@ -204,7 +246,7 @@ class MrWolf {
 
         val date = "$weekdayEn the $day of $month, $year"
 
-        if (dateLabel.text != date) dateLabel.text = date
+        if (hijriLabel.text != date) hijriLabel.text = date
     }
 
     private fun updateBattery() {
@@ -243,11 +285,13 @@ class MrWolf {
     }
 
     companion object {
+        private var showGregorianDate = false
         private var showSalahTime = false
         private var showHijriDate = false
         private var showBattery = false
 
         @JvmStatic fun main(args: Array<String>) {
+            if (args.any { it.toLowerCase() == "--gregoriandate" }) showGregorianDate = true
             if (args.any { it.toLowerCase() == "--prayertimes" }) showSalahTime = true
             if (args.any { it.toLowerCase() == "--hijridate" }) showHijriDate = true
             if (args.any { it.toLowerCase() == "--battery" }) showBattery = true
